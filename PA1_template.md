@@ -13,7 +13,8 @@ This markdown page is used to illustrate the "stream of text and code" functiona
 
 ### First load the libraries
 
-```{r loadLibraries,echo=TRUE,results='hide',warning=FALSE,message=FALSE}
+
+```r
 ## First specify the packages of interest
 packages = c("RCurl", "data.table", "dplyr", "ggplot2", "ggpubr", "mice", "VIM")
 
@@ -31,7 +32,8 @@ package.check <- lapply(
 
 ###  1. Code for reading in the dataset and/or processing the data
 
-```{r getData,echo=TRUE,results='hide',warning=FALSE}
+
+```r
 # Create a directory to put data file in
 if(!file.exists("./data")) {
   dir.create("./data")
@@ -45,8 +47,8 @@ unzip(zipfile="./activity.zip", exdir="./data")
 
 ### Load data into a data table
 
-```{r createDataTable,echo=TRUE,warning=FALSE}
 
+```r
 # load basic data table
 personal_activity_dft <- fread("./data/activity.csv", na.strings=c("NA"))
 # set data field to type Date
@@ -56,10 +58,19 @@ personal_activity_dft$date <- as.Date(personal_activity_dft$date)
 head(personal_activity_dft, n=5)
 ```
 
+```
+##    steps       date interval
+## 1:    NA 2012-10-01        0
+## 2:    NA 2012-10-01        5
+## 3:    NA 2012-10-01       10
+## 4:    NA 2012-10-01       15
+## 5:    NA 2012-10-01       20
+```
+
 ### Create separate dataframe that removes NA values
 
-```{r createNoNADataTable,echo=TRUE,warning=FALSE}
 
+```r
 # clear out NA values and make steps numeric
 personal_activity_dft_nona <- personal_activity_dft[!is.na(personal_activity_dft$steps)]
 personal_activity_dft_nona$steps <- as.numeric(personal_activity_dft_nona$steps)
@@ -68,12 +79,21 @@ personal_activity_dft_nona$steps <- as.numeric(personal_activity_dft_nona$steps)
 head(personal_activity_dft_nona, n=5)
 ```
 
+```
+##    steps       date interval
+## 1:     0 2012-10-02        0
+## 2:     0 2012-10-02        5
+## 3:     0 2012-10-02       10
+## 4:     0 2012-10-02       15
+## 5:     0 2012-10-02       20
+```
+
 ## What is mean total number of steps taken per day?
 
 ### 2. Histogram of the total number of steps taken each day
 
-```{r meanStepsHist,echo=TRUE,results='hide',warning=FALSE}
 
+```r
 # step histogram by date
 ggplot(personal_activity_dft_nona, aes(x=date,  weights=steps)) +
   geom_histogram(color="black", fill="green", bins = 53) +
@@ -83,23 +103,38 @@ ggplot(personal_activity_dft_nona, aes(x=date,  weights=steps)) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
+![](PA1_template_files/figure-html/meanStepsHist-1.png)<!-- -->
+
 ### 3. Mean and median number of steps taken each day
 
-```{r meanMedianSteps,echo=TRUE,warning=FALSE}
+
+```r
 # find mean and median via summary
 steps_per_day_df <- aggregate(list(sumsteps=personal_activity_dft_nona$steps),by=list(date=personal_activity_dft_nona$date),FUN=sum)
 summary <- summary(steps_per_day_df$sumsteps)
 
 # print them out
 print(paste("Mean number of steps: ", summary[4], sep=""))
+```
+
+```
+## [1] "Mean number of steps: 10766.1886792453"
+```
+
+```r
 print(paste("Median number of steps: ", summary[3], sep=""))
+```
+
+```
+## [1] "Median number of steps: 10765"
 ```
 
 ## What is the average daily activity pattern?
 
 ### 4. Time series plot of the average number of steps taken
 
-```{r averageStepHist,echo=TRUE,warning=FALSE,message=FALSE}
+
+```r
 # get plot with average horizontal line, smooth average by time and actual points
 ggplot(data=steps_per_day_df, aes(x=date, y=sumsteps, group=1)) +
   geom_line(color="grey") +
@@ -112,9 +147,12 @@ ggplot(data=steps_per_day_df, aes(x=date, y=sumsteps, group=1)) +
   geom_hline(yintercept = mean(steps_per_day_df$sumsteps), color="green")
 ```
 
+![](PA1_template_files/figure-html/averageStepHist-1.png)<!-- -->
+
 ### 5. The 5-minute interval that, on average, contains the maximum number of steps  
 
-```{r topInterval,echo=TRUE,warning=FALSE,message=FALSE}
+
+```r
 # find the top interval
 top_interval <- personal_activity_dft_nona %>%
   group_by(interval) %>% #group by name
@@ -123,7 +161,10 @@ top_interval <- personal_activity_dft_nona %>%
   arrange(desc(avg_steps)) #arrange in a descending fashion to get the names with highest avg_score
 
 print(paste("The five minute interval with the maximum number of steps was interval ", top_interval[1,1], " at ", top_interval[1,2], " steps", sep=""))
+```
 
+```
+## [1] "The five minute interval with the maximum number of steps was interval 835 at 206.169811320755 steps"
 ```
   
 ## Imputing missing values
@@ -139,22 +180,33 @@ There are multiple rows in the activity data that have NA values in the number o
 
 We are assuming this is MCAR data. For this the mice() function takes care of the imputing process. The pmm method is used, as it is the first one mentioned, and it is difficult to discern if there is a better one
 
-```{r impute,echo=TRUE,warning=FALSE,message=FALSE,results='hide'}
+
+```r
 # Create the imputed data set
 mice_imputes <- mice(personal_activity_dft, m=5, meth="pmm")
 # Create the imputed dataframe from the dataset
 personal_activity_dft_impute <- mice::complete(mice_imputes,5)
 ```
 
-```{r imputeHead,echo=TRUE,warning=FALSE,message=FALSE}
+
+```r
 # Get first five rows
 head(personal_activity_dft_impute, n=5)
 ```
 
+```
+##   steps       date interval
+## 1     0 2012-10-01        0
+## 2    47 2012-10-01        5
+## 3     0 2012-10-01       10
+## 4     0 2012-10-01       15
+## 5     0 2012-10-01       20
+```
+
 ### 7. Histogram of the total number of steps taken each day after missing values are imputed, compared with original
 
-```{r imputeHistComparison,echo=TRUE,fig.width=10,warning=FALSE}
 
+```r
 # create original plot with NA values removed
 nonaplot <- ggplot(personal_activity_dft_nona, aes(x=date,  weights=steps)) +
   geom_histogram(color="black", fill="green", bins = 53) +
@@ -175,12 +227,15 @@ imputeplot <- ggplot(personal_activity_dft_impute, aes(x=date,  weights=steps)) 
 ggarrange(nonaplot, imputeplot, ncol = 2, labels = c("A", "B")) # Second row with box and dot plots
 ```
 
+![](PA1_template_files/figure-html/imputeHistComparison-1.png)<!-- -->
+
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 ### 8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
 
-```{r weekendWeekdayStepComparison,echo=TRUE,fig.width=10,results='hide',warning=FALSE,message=FALSE}
+
+```r
 # create a vector of weekends
 weekenddays <- c('Saturday', 'Sunday')
 # create column marking which date is weekend or weekday
@@ -200,5 +255,7 @@ ggplot(data = averagesteps_per_interval_by_datetye, aes(interval, step_average))
   facet_wrap(~ daytype) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
+
+![](PA1_template_files/figure-html/weekendWeekdayStepComparison-1.png)<!-- -->
 
 Thank you for your review!
